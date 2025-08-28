@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="hu">
-    <head>
-        <meta charset="UTF-8" />
-        <title>🎥 Legyen Ön is Milliomos! Multi - koncepció leírása</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <style>
+	<head>
+		<meta charset="UTF-8" />
+		<title>🎥 Legyen Ön is Milliomos! Multi - koncepció leírása</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<style>
     :root {
       --accent: #ff6600;     /* narancssárga */
       --highlight: #00cc66;  /* zöld */
@@ -99,6 +99,16 @@
       margin-top: 1rem;
     }
 
+	ul ul {
+      list-style: circle;
+      margin-left: 1.5rem;
+    }
+
+    ul ul ul {
+      list-style: square;
+      margin-left: 3rem;
+    }
+
     li {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--highlight);
@@ -151,30 +161,59 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+
   </style>
-    </head>
-    <body>
-        <div class="mode-toggle">
-            <button class="mode-button" onclick="toggleMode()">🎛
-                Módváltás</button>
-        </div>
-        <div class="glass-panel" id="markdown-output">Betöltés...</div>
+	</head>
+	<body>
+		<div class="mode-toggle">
+			<button class="mode-button" onclick="toggleMode()">🎛
+				Módváltás</button>
+		</div>
+		<div class="glass-panel" id="markdown-output">Betöltés...</div>
 
-        <script>
+		<script>
     async function loadMarkdown() {
-      const response = await fetch('https://raw.githubusercontent.com/MassiveAwareness/placeholder/refs/heads/primary/content.md');
-      const markdown = await response.text();
-      const html = parseMarkdown(markdown);
-      document.getElementById('markdown-output').innerHTML = html;
-    }
+  const response = await fetch('https://raw.githubusercontent.com/MassiveAwareness/placeholder/primary/content.md');
+  const markdown = await response.text();
+  const html = parseMarkdown(markdown);
+  document.getElementById('markdown-output').innerHTML = html;
+}
 
-    function parseMarkdown(md) {
+function parseMarkdown(md) {
   const lines = md.split('\n');
   let html = '';
-  let inList = false;
+  let listStack = [];
   let inTable = false;
 
   for (let line of lines) {
+    const indentMatch = line.match(/^(\s*)- (.*)/);
+    if (indentMatch) {
+      const indent = indentMatch[1].length;
+      const content = indentMatch[2]
+        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+      while (listStack.length > 0 && listStack[listStack.length - 1] > indent) {
+        html += '</ul>';
+        listStack.pop();
+      }
+
+      if (listStack.length === 0 || listStack[listStack.length - 1] < indent) {
+        html += '<ul>';
+        listStack.push(indent);
+      }
+
+      html += `<li>${content}</li>`;
+      continue;
+    }
+
+    while (listStack.length > 0) {
+      html += '</ul>';
+      listStack.pop();
+    }
+
     if (/^### /.test(line)) {
       html += `<h3>${line.slice(4)}</h3>`;
     } else if (/^## /.test(line)) {
@@ -202,61 +241,43 @@
         html += '</table>';
         inTable = false;
       }
-      if (/^- /.test(line)) {
-        if (!inList) {
-          html += '<ul>';
-          inList = true;
-        }
-        const item = line.slice(2)
-          .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*(.*?)\*/g, '<em>$1</em>');
-        html += `<li>${item}</li>`;
-      } else {
-        if (inList) {
-          html += '</ul>';
-          inList = false;
-        }
-        const formatted = line
-          .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*(.*?)\*/g, '<em>$1</em>');
-        html += `<p>${formatted}</p>`;
-      }
+      const formatted = line
+        .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      html += `<p>${formatted}</p>`;
     }
   }
 
-  if (inList) html += '</ul>';
+  while (listStack.length > 0) {
+    html += '</ul>';
+    listStack.pop();
+  }
   if (inTable) html += '</table>';
   return html;
 }
 
-
-    function toggleMode() {
+function toggleMode() {
   const root = document.documentElement;
   const body = document.body;
 
-  const currentAccent = getComputedStyle(root).getPropertyValue('--accent').trim();
-  const currentHighlight = getComputedStyle(root).getPropertyValue('--highlight').trim();
-
-  const isFlipped = body.classList.contains('mode-flipped');
-
-  if (isFlipped) {
+  if (body.classList.contains('mode-flipped')) {
     body.classList.remove('mode-flipped');
-    root.style.setProperty('--correct', '#00cc66');     // zöld
-    root.style.setProperty('--marked', '#ff6600');      // narancs
-    root.style.setProperty('--accent', '#ff6600');      // narancs
-    root.style.setProperty('--highlight', '#00cc66');   // zöld
+    root.style.setProperty('--correct', '#00cc66');
+    root.style.setProperty('--marked', '#ff6600');
+    root.style.setProperty('--accent', '#ff6600');
+    root.style.setProperty('--highlight', '#00cc66');
   } else {
     body.classList.add('mode-flipped');
-    root.style.setProperty('--correct', '#ff6600');     // narancs
-    root.style.setProperty('--marked', '#00cc66');      // zöld
-    root.style.setProperty('--accent', '#00cc66');      // zöld
-    root.style.setProperty('--highlight', '#ff6600');   // narancs
+    root.style.setProperty('--correct', '#ff6600');
+    root.style.setProperty('--marked', '#00cc66');
+    root.style.setProperty('--accent', '#00cc66');
+    root.style.setProperty('--highlight', '#ff6600');
   }
 }
 
-    window.addEventListener('DOMContentLoaded', loadMarkdown);
+window.addEventListener('DOMContentLoaded', loadMarkdown);
+
   </script>
-    </body>
+	</body>
 </html>
